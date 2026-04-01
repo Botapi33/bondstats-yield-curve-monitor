@@ -1,173 +1,628 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yield Curve Monitor | BondStats</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yield Curve Monitor | BondStats</title>
+  <meta
+    name="description"
+    content="A provisional sovereign yield curve monitor showing 2-year and 10-year bond yields, curve spread and current regime."
+  />
+  <style>
+    :root {
+      --bg-1: #06111d;
+      --bg-2: #0b1626;
+      --panel: rgba(12, 24, 40, 0.96);
+      --panel-2: rgba(17, 31, 50, 0.98);
+      --panel-3: rgba(20, 37, 58, 0.98);
+      --border: rgba(138, 170, 215, 0.14);
+      --text: #eef4fb;
+      --muted: #9bb0c8;
+      --soft: #7f94ad;
+      --accent: #89b8ff;
+      --good: #7fd39a;
+      --warn: #ffd27d;
+      --bad: #ff9f9f;
+      --radius: 22px;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+      --max: 1220px;
+    }
 
-<style>
-body {
-  margin:0;
-  font-family:Arial;
-  background:#0b1626;
-  color:#eef4fb;
-}
+    * {
+      box-sizing: border-box;
+    }
 
-.container {
-  max-width:1000px;
-  margin:auto;
-  padding:30px 20px;
-}
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(80, 118, 178, 0.18), transparent 26%),
+        radial-gradient(circle at 88% 12%, rgba(89, 118, 162, 0.12), transparent 20%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
 
-h1 {
-  font-size:36px;
-}
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 26px 18px 40px;
+    }
 
-p {
-  color:#9bb0c8;
-}
+    .hero,
+    .panel,
+    .stat,
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
 
-.card {
-  background:#122033;
-  padding:18px;
-  border-radius:14px;
-  margin-bottom:12px;
-}
+    .hero {
+      padding: 26px;
+      margin-bottom: 18px;
+    }
 
-.row {
-  display:flex;
-  justify-content:space-between;
-  margin-top:8px;
-}
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: .09em;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
 
-.status {
-  font-weight:bold;
-}
+    h1 {
+      margin: 0 0 14px;
+      font-size: 44px;
+      line-height: 1.03;
+      letter-spacing: -0.03em;
+    }
 
-.normal { color:#7fd39a; }
-.flat { color:#ffd27d; }
-.inverted { color:#ff9f9f; }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 940px;
+      font-size: 17px;
+    }
 
-canvas {
-  margin-top:30px;
-  width:100%;
-  height:300px;
-}
-</style>
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      color: #d8e7fb;
+      font-weight: 600;
+    }
+
+    .grid-5 {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.12fr 0.88fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      padding: 18px;
+      background: var(--panel-2);
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--soft);
+      font-weight: 800;
+    }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.06;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .sub {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .chart-shell {
+      background: var(--panel-3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 14px;
+      min-height: 470px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 380px;
+      display: block;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0));
+    }
+
+    .card {
+      background: var(--panel-2);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .card:last-child {
+      margin-bottom: 0;
+    }
+
+    .rows {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr 0.8fr 0.9fr;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+    }
+
+    .row-name {
+      font-weight: 700;
+    }
+
+    .metric-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .metric-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .metric-line:last-child {
+      border-bottom: none;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .metric-value {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .positive {
+      color: var(--good);
+      font-weight: 700;
+    }
+
+    .negative {
+      color: var(--bad);
+      font-weight: 700;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+
+    .badge-normal {
+      background: rgba(127,211,154,0.15);
+      color: var(--good);
+    }
+
+    .badge-flat {
+      background: rgba(255,210,125,0.15);
+      color: var(--warn);
+    }
+
+    .badge-inverted {
+      background: rgba(255,159,159,0.15);
+      color: var(--bad);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: var(--panel-3);
+    }
+
+    table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 14px 12px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--soft);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.02);
+    }
+
+    tbody td {
+      padding: 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: rgba(255,255,255,0.03);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .footnote {
+      margin-top: 12px;
+      color: var(--soft);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .grid-5 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .wrap {
+        padding: 14px 12px 28px;
+      }
+
+      h1 {
+        font-size: 31px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      .grid-5 {
+        grid-template-columns: 1fr;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      canvas {
+        height: 320px;
+      }
+    }
+  </style>
 </head>
-
 <body>
-
-<div class="container">
-
-<h1>Yield Curve Monitor</h1>
-<p>
-The yield curve shows the relationship between bond yields and maturity and is a key indicator of economic expectations.  [oai_citation:0‡pimco.com](https://www.pimco.com/ae/en/resources/education/bonds-102-understanding-the-yield-curve?utm_source=chatgpt.com)  
-A normal curve suggests growth, while an inverted curve can signal recession risk.  [oai_citation:1‡MarketBeat](https://www.marketbeat.com/financial-terms/what-is-yield-curve/?utm_source=chatgpt.com)
-</p>
-
-<div id="cards"></div>
-
-<canvas id="chart"></canvas>
-
-</div>
-
-<script>
-const DATA = [
-  {country:"United States", y2:4.65, y10:4.21},
-  {country:"Germany", y2:2.87, y10:2.54},
-  {country:"United Kingdom", y2:4.32, y10:4.05},
-  {country:"Japan", y2:0.72, y10:1.45},
-  {country:"China", y2:2.05, y10:2.30}
-];
-
-function spread(d){
-  return +(d.y10 - d.y2).toFixed(2);
-}
-
-function status(s){
-  if(s < -0.3) return "Inverted";
-  if(s < 0) return "Flat";
-  return "Normal";
-}
-
-function statusClass(s){
-  if(s < -0.3) return "inverted";
-  if(s < 0) return "flat";
-  return "normal";
-}
-
-function render(){
-  const el = document.getElementById("cards");
-
-  el.innerHTML = DATA.map(d=>{
-    const s = spread(d);
-    return `
-      <div class="card">
-        <strong>${d.country}</strong>
-
-        <div class="row">
-          <span>2Y Yield</span>
-          <span>${d.y2.toFixed(2)}%</span>
-        </div>
-
-        <div class="row">
-          <span>10Y Yield</span>
-          <span>${d.y10.toFixed(2)}%</span>
-        </div>
-
-        <div class="row">
-          <span>Spread</span>
-          <span>${s>0?"+":""}${s.toFixed(2)}%</span>
-        </div>
-
-        <div class="row">
-          <span>Status</span>
-          <span class="status ${statusClass(s)}">${status(s)}</span>
-        </div>
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow">BondStats Curves</p>
+      <h1>Yield Curve Monitor</h1>
+      <p>
+        The yield curve tracks the relationship between short-term and long-term government bond yields.
+        This provisional BondStats version focuses on 2-year and 10-year sovereign yields to show whether a market is normal, flat or inverted.
+      </p>
+      <div class="hero-meta">
+        <div class="pill">Updated: 2026-04-01</div>
+        <div class="pill">5 countries tracked</div>
+        <div class="pill">Version: provisional dataset</div>
       </div>
-    `;
-  }).join("");
-}
+    </section>
 
-function chart(){
-  const c = document.getElementById("chart");
-  const ctx = c.getContext("2d");
+    <section class="grid-5" id="stats-grid"></section>
 
-  const w = c.width = 900;
-  const h = c.height = 300;
+    <section class="grid-2">
+      <section class="panel">
+        <h2>2Y vs 10Y Curve View</h2>
+        <p class="sub">
+          A simple curve comparison using current 2-year and 10-year sovereign bond yields.
+        </p>
+        <div class="chart-shell">
+          <canvas id="curveChart" width="1100" height="380"></canvas>
+        </div>
+        <div class="footnote">
+          This version uses fixed comparison values and can later be upgraded to a live BondStats curve JSON feed.
+        </div>
+      </section>
 
-  ctx.clearRect(0,0,w,h);
+      <section class="panel">
+        <div class="card">
+          <h3 style="margin:0 0 8px;">Selected Market Read</h3>
+          <div class="metric-grid" id="selected-read"></div>
+        </div>
 
-  const max = Math.max(...DATA.map(d=>d.y10));
-  const min = Math.min(...DATA.map(d=>d.y2));
-  const range = max-min;
+        <div class="card">
+          <h3 style="margin:0 0 8px;">Global Curve Status</h3>
+          <div class="rows" id="status-list"></div>
+        </div>
+      </section>
+    </section>
 
-  DATA.forEach((d,i)=>{
-    const x1 = 150;
-    const x2 = 750;
+    <section class="panel">
+      <h2>Yield Curve Table</h2>
+      <p class="sub">
+        Country-by-country comparison of current 2-year yield, 10-year yield, 10Y–2Y spread and curve regime.
+      </p>
 
-    const y1 = 250 - ((d.y2-min)/range)*200;
-    const y2 = 250 - ((d.y10-min)/range)*200;
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>2Y Yield</th>
+              <th>10Y Yield</th>
+              <th>10Y–2Y Spread</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-    ctx.beginPath();
-    ctx.moveTo(x1,y1);
-    ctx.lineTo(x2,y2);
-    ctx.strokeStyle="#89b8ff";
-    ctx.lineWidth=2;
-    ctx.stroke();
+  <script>
+    const DATA = [
+      { country: "United States", y2: 4.65, y10: 4.21 },
+      { country: "Germany", y2: 2.87, y10: 2.54 },
+      { country: "United Kingdom", y2: 4.32, y10: 4.05 },
+      { country: "Japan", y2: 0.72, y10: 1.45 },
+      { country: "China", y2: 2.05, y10: 2.30 }
+    ];
 
-    ctx.fillStyle="#89b8ff";
-    ctx.fillText(d.country, x2+10, y2);
-  });
+    function getSpread(item) {
+      return +(item.y10 - item.y2).toFixed(2);
+    }
 
-  ctx.fillText("2Y",130,280);
-  ctx.fillText("10Y",740,280);
-}
+    function getStatus(item) {
+      const s = getSpread(item);
+      if (s < -0.30) return "Inverted";
+      if (s < 0) return "Flat";
+      return "Normal";
+    }
 
-render();
-chart();
-</script>
+    function getStatusBadge(status) {
+      if (status === "Inverted") return '<span class="badge badge-inverted">INVERTED</span>';
+      if (status === "Flat") return '<span class="badge badge-flat">FLAT</span>';
+      return '<span class="badge badge-normal">NORMAL</span>';
+    }
 
+    function fmtYield(v) {
+      return v.toFixed(2) + "%";
+    }
+
+    function fmtSpread(v) {
+      const sign = v > 0 ? "+" : "";
+      return sign + v.toFixed(2) + "%";
+    }
+
+    function renderStats() {
+      const container = document.getElementById("stats-grid");
+      container.innerHTML = DATA.map(item => {
+        const spread = getSpread(item);
+        const status = getStatus(item);
+        return `
+          <div class="stat">
+            <span class="stat-label">${item.country}</span>
+            <div class="stat-value">${fmtSpread(spread)}</div>
+            <div class="stat-note">${status} curve regime</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderSelectedRead() {
+      const selected = DATA[0];
+      const spread = getSpread(selected);
+      const status = getStatus(selected);
+      const container = document.getElementById("selected-read");
+
+      container.innerHTML = `
+        <div class="metric-line">
+          <span class="metric-label">Market</span>
+          <span class="metric-value">${selected.country}</span>
+        </div>
+        <div class="metric-line">
+          <span class="metric-label">2Y Yield</span>
+          <span class="metric-value">${fmtYield(selected.y2)}</span>
+        </div>
+        <div class="metric-line">
+          <span class="metric-label">10Y Yield</span>
+          <span class="metric-value">${fmtYield(selected.y10)}</span>
+        </div>
+        <div class="metric-line">
+          <span class="metric-label">10Y–2Y Spread</span>
+          <span class="metric-value ${spread >= 0 ? "positive" : "negative"}">${fmtSpread(spread)}</span>
+        </div>
+        <div class="metric-line">
+          <span class="metric-label">Status</span>
+          <span class="metric-value">${getStatusBadge(status)}</span>
+        </div>
+      `;
+    }
+
+    function renderStatusList() {
+      const container = document.getElementById("status-list");
+      container.innerHTML = DATA.map(item => {
+        const spread = getSpread(item);
+        return `
+          <div class="row">
+            <div class="row-name">${item.country}</div>
+            <div>${fmtYield(item.y2)}</div>
+            <div>${fmtYield(item.y10)}</div>
+            <div class="${spread >= 0 ? "positive" : "negative"}">${fmtSpread(spread)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("table-body");
+      tbody.innerHTML = DATA.map(item => {
+        const spread = getSpread(item);
+        const status = getStatus(item);
+        return `
+          <tr>
+            <td>${item.country}</td>
+            <td>${fmtYield(item.y2)}</td>
+            <td>${fmtYield(item.y10)}</td>
+            <td class="${spread >= 0 ? "positive" : "negative"}">${fmtSpread(spread)}</td>
+            <td>${getStatusBadge(status)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function drawChart() {
+      const canvas = document.getElementById("curveChart");
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const left = 80;
+      const right = 220;
+      const top = 30;
+      const bottom = 55;
+      const chartW = w - left - right;
+      const chartH = h - top - bottom;
+
+      const values = DATA.flatMap(d => [d.y2, d.y10]);
+      const maxY = Math.max(...values);
+      const minY = Math.min(...values);
+      const range = Math.max(maxY - minY, 0.5);
+
+      for (let i = 0; i <= 4; i++) {
+        const y = top + (chartH / 4) * i;
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.lineWidth = 1;
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + chartW, y);
+        ctx.stroke();
+      }
+
+      const x2 = left + chartW * 0.15;
+      const x10 = left + chartW * 0.85;
+
+      ctx.fillStyle = "#9bb0c8";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("2Y", x2, h - 18);
+      ctx.fillText("10Y", x10, h - 18);
+
+      ctx.textAlign = "right";
+      ctx.fillText(maxY.toFixed(2) + "%", left - 10, top + 4);
+      ctx.fillText(minY.toFixed(2) + "%", left - 10, top + chartH + 4);
+
+      const colors = ["#89b8ff", "#ffd27d", "#7fd39a", "#ff9f9f", "#c4a1ff"];
+
+      DATA.forEach((item, i) => {
+        const color = colors[i % colors.length];
+        const yA = top + ((maxY - item.y2) / range) * chartH;
+        const yB = top + ((maxY - item.y10) / range) * chartH;
+
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.moveTo(x2, yA);
+        ctx.lineTo(x10, yB);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.arc(x2, yA, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x10, yB, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = color;
+        ctx.textAlign = "left";
+        ctx.font = "12px Arial";
+        ctx.fillText(item.country, x10 + 12, yB + 4);
+      });
+    }
+
+    renderStats();
+    renderSelectedRead();
+    renderStatusList();
+    renderTable();
+    drawChart();
+  </script>
 </body>
 </html>
